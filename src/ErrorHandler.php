@@ -30,9 +30,10 @@ class ErrorHandler {
         $ext = $f3->get('ext');
         self::logError($f3->get(self::$ERROR_PREFIX), false);
         self::clearBuffer();
+
         return self::isJson($f3)
             ? self::errorJson($f3->get(self::$ERROR_PREFIX), false)
-            : \Template::instance()->render("_404$ext");
+            : \Template::instance()->render($f3->get("page.404")."$ext");
     }
 
     static function handle500(Base $f3): string {
@@ -41,7 +42,7 @@ class ErrorHandler {
         self::clearBuffer();
         return self::isJson($f3)
             ? self::errorJson($f3->get(self::$ERROR_PREFIX), $f3->get("DEBUG") > 0)
-            : \Template::instance()->render("_500$ext");
+            : \Template::instance()->render($f3->get("page.500")."$ext");
     }
 
     protected static function errorJson(array $error, bool $trace = true): string {
