@@ -1,0 +1,11 @@
+.idea
+*.iml
+
+vendor
+composer.lock
+
+logs
+.phpunit.result.cache
+
+tests/logs
+tests/webapp/tmp

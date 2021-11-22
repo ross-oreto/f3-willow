@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# only allow index.php as entry point or serve assets.
+RewriteRule !^((index\.php)?$|assets/) /index.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule .* index.php [L,QSA]
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]

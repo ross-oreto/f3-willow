@@ -1,0 +1,33 @@
+{
+    "name": "oreto/f3-willow",
+    "description": "Common controller class and router API for Fat-Free (F3)",
+    "type": "library",
+    "require": {
+        "bcosca/fatfree-core": "^3.7",
+        "monolog/monolog": "^2.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "guzzlehttp/guzzle": "^7.4",
+        "symfony/process": "^5.3"
+    },
+    "license": "BSD-3-Clause",
+    "autoload": {
+        "psr-4": {
+            "Oreto\\F3Willow\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Oreto\\F3Willow\\Test\\": "tests/src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Ross Oreto"
+        }
+    ],
+    "scripts": {
+        "test": "cd tests/src && ../../vendor/bin/phpunit --testdox ."
+    }
+}
