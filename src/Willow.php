@@ -27,7 +27,7 @@ abstract class Willow {
      * @return bool True if mode matches false otherwise
      */
     public static function isMode(string $mode): bool {
-        return self::$f3->get("mode") === $mode;
+        return self::get("mode", "dev") === $mode;
     }
     public static function isDev(): bool {
         return self::isMode("dev");
@@ -68,7 +68,7 @@ abstract class Willow {
      * @return string The resolved message
      */
     public static function dict(string $key, string|array $args = NULL): string {
-        $message = self::$f3->get(self::$f3->get("PREFIX").$key, $args);
+        $message = self::get(self::get("PREFIX", "DICT.").$key, $key, $args);
         return $message == null ? $key : $message;
     }
 
@@ -148,16 +148,16 @@ abstract class Willow {
      * Setup the app logger, which is the basis for other controller loggers.
      */
     protected static function initLogger(): void {
-        $logName = self::$f3->get("logName");
+        $logName = self::get("logName", "app.log");
         $logName = $logName == null ? "app.log ": $logName;
         self::$logger = new Logger(Willow::class);
-        $level = match (self::$f3->get("DEBUG")) {
+        $level = match (self::get("DEBUG", 3)) {
             0 => Logger::ERROR,
             1 => Logger::NOTICE,
             2 => Logger::INFO,
             default => Logger::DEBUG
         };
-        $stream = new StreamHandler(self::$f3->get('LOGS').$logName, $level, true);
+        $stream = new StreamHandler(self::get('LOGS', "../logs/").$logName, $level, true);
         $formatter = new LineFormatter(null, null, true, true);
         $stream->setFormatter($formatter);
         self::$logger->pushHandler($stream);
@@ -212,6 +212,10 @@ abstract class Willow {
             || self::strContains(self::requestHeader($f3, "Content-Type"), "json");
     }
 
+    public static function get(string $name, mixed $defaultValue = null, string|array $args = NULL): mixed {
+        return self::$f3->get($name) == null ? $defaultValue : self::$f3->get($name, $args);
+    }
+
     /**
      * Define routes for this Willow
      * @return Routes
@@ -243,17 +247,16 @@ abstract class Willow {
 
     /**
      * @param string $view View to render inside the main template
-     * @param Base $f3 Fat-Free object
      * @param bool $template If true render view inside a template, otherwise just the specified view
      * @return string The rendered template
      */
-    protected function render(string $view, Base $f3, bool $template = true): string {
+    protected function render(string $view, bool $template = true): string {
         $viewKey = str_replace('/', '.', $view);
-        $f3->set('view', $viewKey);
-        $f3->set('title', self::dict($viewKey.'.title'));
-        $ext = $f3->get('ext');
+        self::$f3->set('view', $viewKey);
+        self::$f3->set('title', self::dict($viewKey.'.title'));
+        $ext = self::$f3->get('ext');
         if ($template) {
-            $f3->set('content',"$view$ext");
+            self::$f3->set('content',"$view$ext");
             return \Template::instance()->render("/template$ext");
         } else {
             return \Template::instance()->render("/$view$ext");
@@ -265,6 +268,6 @@ abstract class Willow {
      * @param Base $f3 Fat-Free object
      */
     public function index(Base $f3) {
-        echo $this->render("home", $f3);
+        echo $this->render("home");
     }
 }

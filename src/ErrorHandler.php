@@ -21,32 +21,33 @@ class ErrorHandler {
 
     static function handle(Base $f3) {
         echo match ($f3->get(self::$ERROR_PREFIX.".code")) {
-            404 => self::handle404($f3),
-            default => self::handle500($f3),
+            400 => self::handleStatusCode($f3, 400, false),
+            401 => self::handleStatusCode($f3, 401, false),
+            403 => self::handleStatusCode($f3, 403, false),
+            404 => self::handleStatusCode($f3, 404, false),
+            default => self::handleStatusCode($f3, 500, Willow::get("DEBUG", 3) > 0),
         };
     }
 
-    static function handle404(Base $f3): string {
-        $ext = $f3->get('ext');
-        self::logError($f3->get(self::$ERROR_PREFIX), false);
-        self::clearBuffer();
-
-        return self::isJson($f3)
-            ? self::errorJson($f3->get(self::$ERROR_PREFIX), false)
-            : \Template::instance()->render($f3->get("page.404")."$ext");
+    /**
+     * Get the extension of the view layer, .html, .htm, .xhtml, etc.
+     * @return string
+     */
+    protected static function getViewExt(): string {
+        return Willow::get('ext', '.htm');
     }
 
-    static function handle500(Base $f3): string {
-        $ext = $f3->get('ext');
+    static protected function handleStatusCode(Base $f3, int $statusCode, bool $trace): string {
         self::logError($f3->get(self::$ERROR_PREFIX));
         self::clearBuffer();
         return self::isJson($f3)
-            ? self::errorJson($f3->get(self::$ERROR_PREFIX), $f3->get("DEBUG") > 0)
-            : \Template::instance()->render($f3->get("page.500")."$ext");
+            ? self::errorJson($f3->get(self::$ERROR_PREFIX), $trace)
+            : \Template::instance()->render(Willow::get("page.$statusCode", "_$statusCode")
+                .self::getViewExt());
     }
 
     protected static function errorJson(array $error, bool $trace = true): string {
-        header("Content-Type: application/json".Psr7::APPLICATION_JSON, true, $error['code']);
+        header("Content-Type: ".Psr7::APPLICATION_JSON, true, $error['code']);
         if (!$trace)
             unset($error['trace']);
         return json_encode($error);

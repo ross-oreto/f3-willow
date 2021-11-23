@@ -82,8 +82,7 @@ class WillowTest extends TestCase {
     public function testHomePageResponse() {
         $response = self::$http->request('GET', '/');
         self::assertEquals(200, $response->getStatusCode());
-        $mode = self::$MODE;
-        $this->assertEquals("test", $mode);
+        $this->assertEquals("test", self::$MODE);
         $this->assertStringContainsString("index", $response->getBody()->getContents());
     }
 
@@ -106,9 +105,8 @@ class WillowTest extends TestCase {
     }
 
     public function testLogging() {
-        $f3 = self::$f3;
         Willow::getLogger()->info("testing");
-        $fileName = $f3->get("LOGS").$f3->get("logName");
+        $fileName = Willow::get("LOGS", "../logs/").Willow::get("logName", "test.log");
         $this->assertTrue(file_exists($fileName));
         $this->assertStringEndsWith("testing  \n", file_get_contents($fileName));
     }
