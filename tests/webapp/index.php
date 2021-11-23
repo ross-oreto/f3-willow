@@ -5,4 +5,4 @@ use Oreto\F3Willow\Willow;
 
 require '../../vendor/autoload.php';
 $f3 = \Base::instance();
-Willow::equip($f3, [TestApp::routes()], __DIR__."/../config/config.ini")->run();
+Willow::equip($f3, [TestApp::routes()])->run();

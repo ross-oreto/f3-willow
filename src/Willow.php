@@ -83,7 +83,7 @@ abstract class Willow {
      */
     public static function equip(Base $f3, array $routes, ?string $config = null): Base {
         self::$f3 = $f3;
-        self::configure($f3, $config == null ? __DIR__."/../config/config.ini" : $config);
+        self::configure($f3, $config == null ? "../config/config.ini" : $config);
         self::initLogger();
 
         // mode functions in view templates
