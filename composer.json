@@ -3,6 +3,7 @@
     "description": "Common controller class and router API for Fat-Free (F3)",
     "type": "library",
     "require": {
+        "php": ">=8.0",
         "bcosca/fatfree-core": "^3.7",
         "monolog/monolog": "^2.3"
     },
