@@ -33,7 +33,7 @@ class WillowTest extends TestCase {
         // equip Willow for static testing
         self::$f3 = Base::instance();
         self::$f3 ->set('QUIET', true);
-        Willow::equip(self::$f3, [TestApp::routes()], __DIR__."/../config/config.ini");
+        Willow::equip(self::$f3, [TestApp::routes()], "../config/config.ini");
     }
 
     /**
