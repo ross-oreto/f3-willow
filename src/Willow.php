@@ -16,9 +16,29 @@ use Oreto\F3Willow\Routing\Routes;
 abstract class Willow {
     public static string $ASSETS_PATH = "/assets";
 
+    public static string $PATH_PARAMS = "PARAMS";
+    public static string $COOKIES = "COOKIE";
+    public static string $QUERY_PARAMS = "GET";
+    public static string $POST_BODY = "BODY";
+    public static string $REQUEST = "REQUEST";
+    public static string $SESSION = "SESSION";
+    public static string $FILES = "FILES";
+    public static string $SERVER = "SERVER";
+    public static string $ENV = "ENV";
+    public static string $FORM_DATA = "POST";
+
     protected static Logger $logger;
     protected static Router $router;
     protected static Base $f3;
+
+    /**
+     * Get the application mode/environment
+     * dev,stage, prod mode
+     * @return string
+     */
+    public static function getMode(): string {
+        return self::get("mode", "dev");
+    }
 
     /**
      * Check the mode/environment of the application
@@ -27,7 +47,7 @@ abstract class Willow {
      * @return bool True if mode matches false otherwise
      */
     public static function isMode(string $mode): bool {
-        return self::get("mode", "dev") === $mode;
+        return self::getMode() === $mode;
     }
     public static function isDev(): bool {
         return self::isMode("dev");
@@ -213,7 +233,18 @@ abstract class Willow {
     }
 
     public static function get(string $name, mixed $defaultValue = null, string|array $args = NULL): mixed {
-        return self::$f3->get($name) == null ? $defaultValue : self::$f3->get($name, $args);
+        $val = self::$f3->get($name, $args);
+        return $val === null || $val === ''
+            ? $defaultValue
+            : $val;
+    }
+
+    // convenience methods to use f3 set
+    public static function set(string $name, mixed $val, int $ttl=0): void {
+        self::$f3->set($name, $val, $ttl);
+    }
+    public static function setAll(array $vars, string $prefix='', int $ttl=0): void {
+        self::$f3->mset($vars, $prefix, $ttl);
     }
 
     /**
@@ -224,8 +255,67 @@ abstract class Willow {
 
     protected Logger $log;
 
-    #[Pure] public function __construct() {
+    // string
+    protected static \Closure $intval;
+    protected static \Closure $floatval;
+    protected static \Closure $boolval;
+    protected static \Closure $trim;
+    protected static \Closure $strtotime;
+    protected static \Closure $dateObject;
+    protected static \Closure $datetimeObject;
+    protected static \Closure $str_split;
+    protected static \Closure $explode;
+    protected static \Closure $json_decode;
+
+    // int|float
+    protected static \Closure $date;
+    protected static \Closure $round;
+    protected static \Closure $round1;
+    protected static \Closure $round2;
+    protected static \Closure $round3;
+    protected static \Closure $round4;
+
+    public function __construct() {
         $this->log = self::$logger->withName($this->logName());
+
+        // anonymous string functions
+        self::$intval = static function(string|float|int $s): int|null { return is_numeric($s) ? intval($s): null; };
+        self::$floatval = static function(string|float|int $s): float|null { return is_numeric($s) ? floatval($s): null; };
+        self::$boolval = static function(string|float|int $s): bool {
+            return !(strcasecmp($s, 'false') == 0
+                    || strcasecmp($s, 'no') == 0
+                    || strcasecmp($s, 'n') == 0
+                    || strcasecmp($s, 'not') == 0
+                    || strcasecmp($s, 'invalid') == 0
+                    || strcasecmp($s, 'incorrect') == 0) && boolval($s);
+        };
+        self::$trim = static function(string $s): string { return trim($s); };
+        self::$strtotime = static function(string $s): ?int {
+            $t = strtotime($s);
+            return $t === false ? null : $t;
+        };
+        self::$dateObject = static function($s): ?\DateTime {
+            $d = \DateTime::createFromFormat("m-d-Y", $s);
+            return $d === false ? null : $d;
+        };
+        self::$datetimeObject = static function($s): ?\DateTime {
+            $d = \DateTime::createFromFormat("m-d-Y H:i:s", $s);
+            return $d === false ? null : $d;
+        };
+        self::$str_split = static function(string $s): array { return str_split($s); };
+        self::$explode = static function(string $s): array { return explode(',', $s); };
+        self::$json_decode = static function(string $s): \stdClass|array|null {
+            $json = json_decode($s);
+            return $json === false ? null : $json;
+        };
+
+        // anonymous number functions
+        self::$date= static function($i): string { return date("Y-m-d H:i:s", $i); };
+        self::$round = static function(float|int $i): float { return round($i); };
+        self::$round1 = static function(float|int $i): float { return round($i, 1); };
+        self::$round2 = static function(float|int $i): float { return round($i, 2); };
+        self::$round3 = static function(float|int $i): float { return round($i, 3); };
+        self::$round4 = static function(float|int $i): float { return round($i, 4); };
     }
 
     /**
@@ -237,12 +327,142 @@ abstract class Willow {
     }
 
     /**
+     * Bind value to hive key
+     * @param string $name
+     * @param $val mixed
+     * @param $ttl int
+     * @return mixed
+     */
+    protected function put(string $name, mixed $val, int $ttl=0): Willow {
+        Willow::set($name, $val, $ttl);
+        return $this;
+    }
+
+    /**
+     * Multi-variable assignment using associative array
+     * @param $vars array
+     * @param $prefix string
+     * @param $ttl int
+     * @return Willow
+     */
+    protected function putAll(array $vars, string $prefix='', int $ttl=0): Willow {
+        Willow::setAll($vars, $prefix, $ttl);
+        return $this;
+    }
+
+    /**
+     * Get a value by name from a global bucket and pipe the result through a series of 0...n functions
+     * $this->getFrom(self::$GET, "id", 0);
+     * @param string $bucket The PHP global: COOKIE, GET, POST, REQUEST, SESSION, FILES, SERVER, ENV
+     * @param string $name The name of the variable
+     * @param mixed|null $defaultValue Return this value if name doesn't exist
+     * @param callable ...$pipe An array of anonymous functions which should be of the form f(x)=>y | f1(x)=>y | ...
+     * @return mixed
+     */
+    protected function getFrom(string $bucket, string $name, mixed $defaultValue = null, callable ...$pipe): mixed {
+        $v = self::get("$bucket.$name", $defaultValue);
+        foreach ($pipe as $f) {
+            if ($v == null) break;
+            $v = $f($v);
+            if ($v === null) {
+                $v = $defaultValue;
+                break;
+            }
+        }
+        return $v;
+    }
+
+    /**
+     * Get the url path parameter or the query parameter name if the url parameter doesn't exist
+     * @param string $name The name of the variable
+     * @param mixed|null $defaultValue Return this value if name doesn't exist
+     * @param callable ...$pipe An array of anonymous functions which should be of the form f(x)=>y | f1(x)=>y | ...
+     * @return mixed The parameter value
+     */
+    protected function param(string $name, mixed $defaultValue = null, callable ...$pipe): mixed {
+        return $this->pathParam($name, $this->queryParam($name, $defaultValue, ...$pipe), ...$pipe);
+    }
+    /**
+     * Get the URL path parameter by name
+     * @param string $name The name of the variable
+     * @param mixed|null $defaultValue Return this value if name doesn't exist
+     * @param callable ...$pipe An array of anonymous functions which should be of the form f(x)=>y | f1(x)=>y | ...
+     * @return mixed The parameter value
+     */
+    protected function pathParam(string $name, mixed $defaultValue = null, callable ...$pipe): mixed {
+        return $this->getFrom(self::$PATH_PARAMS, $name, $defaultValue, ...$pipe);
+    }
+    /**
+     * Get the URL query parameter by name
+     * @param string $name The name of the variable
+     * @param mixed|null $defaultValue Return this value if name doesn't exist
+     * @param callable ...$pipe An array of anonymous functions which should be of the form f(x)=>y | f1(x)=>y | ...
+     * @return mixed The parameter value
+     */
+    protected function queryParam(string $name, mixed $defaultValue = null, callable ...$pipe): mixed {
+       return $this->getFrom(self::$QUERY_PARAMS, $name, $defaultValue, ...$pipe);
+    }
+    /**
+     * Returns a map of name value paris of all path and query parameters from the request.
+     * @return array
+     */
+    protected function getParamMap(): array {
+        return array_merge(self::$f3->get(self::$PATH_PARAMS), self::$f3->get(self::$QUERY_PARAMS));
+    }
+
+    protected function getBodyAsString(): string {
+       return self::$f3->get(self::$POST_BODY);
+    }
+    protected function getBodyAsJson(): \stdClass|array|NULL {
+        return json_decode($this->getBodyAsString());
+    }
+
+    /**
+     * @param string $name The name of the form field
+     * @param mixed|null $defaultValue Return this value if name doesn't exist
+     * @param callable ...$pipe An array of anonymous functions which should be of the form f(x)=>y | f1(x)=>y | ...
+     * @return mixed
+     */
+    protected function getFormParam(string $name, mixed $defaultValue = null, callable ...$pipe): mixed {
+        return $this->getFrom(self::$FORM_DATA, $name, $defaultValue, ...$pipe);
+    }
+    protected function getFormData(): array {
+        return self::$f3->get(self::$FORM_DATA);
+    }
+
+    protected function session(string $name, mixed $defaultValue = null): mixed {
+        $value = $this->getFrom(self::$SESSION, $name);
+        if ($value === null) {
+            $value = $defaultValue;
+        }
+        $this->setSession($name, $value);
+        return $value;
+    }
+    protected function setSession(string $name, mixed $value): Willow {
+       return $this->put("Session.$name", $value);
+    }
+
+    /**
      * the framework looks for a method in this class named beforeRoute().
      * If present, F3 runs the code contained in the beforeRoute() event handler
      * before transferring control to the method specified in the route
      * @param Base $f3 Fat-Free object
      */
     function beforeRoute(Base $f3) {
+        $this->langParam();
+    }
+
+    /**
+     * Parse the language/locale from URL parameter 'lang'
+     * If lang param doesn't exist fallback to the session and if that doesn't exist, fallback to the framework default
+     * @return string|null The value of lang URL parameter
+     */
+    protected function langParam(): ?string {
+        $lang = $this->param("lang", $this->session("lang"));
+        if ($lang) {
+            Willow::set('LANGUAGE', $lang);
+        }
+        return $lang;
     }
 
     /**

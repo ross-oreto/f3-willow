@@ -15,6 +15,7 @@ class TestApp extends Willow {
            ->GET("home", "/")->handler('index')
            ->GET("test1", "/test1")->handler('test1')
            ->GET("server_error", "/server-error")->handler('serverError')
+           ->GET("params", "/params/@id")->handler('params')
            ->build();
     }
 
@@ -31,5 +32,15 @@ class TestApp extends Willow {
      */
     function serverError(Base $f3): void {
         throw new Exception('server error!');
+    }
+
+    function params(Base $f3): void {
+        $id = $this->pathParam("id", "0", self::$intval);
+        $this->put("id", $id);
+        $this->put("a", $this->queryParam("a", 0, self::$intval));
+        $this->put("b", $this->queryParam("b", "NaN", self::$intval));
+        $this->put("n", $this->queryParam("n", true, self::$boolval));
+        $this->put("date", $this->queryParam("date", new \DateTime("now"), self::$datetimeObject));
+        echo $id;
     }
 }

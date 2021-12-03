@@ -8,4 +8,4 @@ logs
 .phpunit.result.cache
 
 tests/logs
-tests/webapp/tmp
+tests/webapp/tmp/

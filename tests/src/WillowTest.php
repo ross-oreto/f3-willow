@@ -32,7 +32,7 @@ class WillowTest extends TestCase {
 
         // equip Willow for static testing
         self::$f3 = Base::instance();
-        self::$f3 ->set('QUIET', true);
+        self::$f3->set('QUIET', true);
         Willow::equip(self::$f3, [TestApp::routes()]);
     }
 
@@ -61,8 +61,8 @@ class WillowTest extends TestCase {
 
     public function testRouter() {
         $router = Willow::getRouter();
-        $this->assertEquals(3, sizeof($router->getRoutes()));
-        $this->assertEquals(3, sizeof($router->getRoutes(TestApp::class)));
+        $this->assertEquals(4, sizeof($router->getRoutes()));
+        $this->assertEquals(4, sizeof($router->getRoutes(TestApp::class)));
         $route = $router->getRoute('home');
         $this->assertNotNull($route);
         $this->assertEquals("GET", $route->getMethod());
@@ -74,6 +74,18 @@ class WillowTest extends TestCase {
         $this->assertNull($f3->mock('GET /'));
         $test = $f3->get('RESPONSE');
         $this->assertStringContainsString("index", $test);
+    }
+
+    public function testParams() {
+        $f3 = self::$f3;
+        $this->assertNull($f3->mock('GET /params/34?a=++19+&n=&date=01-01-2022+00:00:00'));
+        $test = $f3->get('RESPONSE');
+        $this->assertSame('34', $test);
+        $this->assertSame(34, $f3->get("id"));
+        $this->assertSame(19, $f3->get("a"));
+        $this->assertSame("NaN", $f3->get("b"));
+        $this->assertSame(true, $f3->get("n"));
+        $this->assertEquals(new \DateTime("01-01-2022"), $f3->get("date"));
     }
 
     // **************************************** INTEGRATIONS ****************************************
