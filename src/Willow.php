@@ -496,6 +496,6 @@ abstract class Willow {
         echo json_encode(array('php' => phpversion()
         , 'mode' => self::getMode()
         , 'fat-free' => InstalledVersions::getVersion('bcosca/fatfree-core')
-        , 'version' => InstalledVersions::getRootPackage()['name']));
+        , 'version' => InstalledVersions::getVersion(InstalledVersions::getRootPackage()['name'])));
     }
 }
