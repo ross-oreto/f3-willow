@@ -4,6 +4,8 @@ namespace Oreto\F3Willow\Psr7;
 
 final class Psr7 {
     public const APPLICATION_JSON = 'application/json';
+    public const TEXT_PLAIN = 'text/plain';
+    public const TEXT_HTML = 'text/html';
 
     public const MEDIA_TYPES = [
         '3gp' => 'video/3gpp',
