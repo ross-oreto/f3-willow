@@ -3,6 +3,7 @@
 namespace Oreto\F3Willow;
 
 use Base;
+use Composer\InstalledVersions;
 use JetBrains\PhpStorm\Pure;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
@@ -489,5 +490,12 @@ abstract class Willow {
      */
     public function index(Base $f3) {
         echo $this->render("home");
+    }
+
+    public function info(Base $f3) {
+        echo json_encode(array('php' => phpversion()
+        , 'mode' => self::getMode()
+        , 'fat-free' => InstalledVersions::getVersion('bcosca/fatfree-core')
+        , 'version' => InstalledVersions::getRootPackage()['name']));
     }
 }
