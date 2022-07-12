@@ -4,7 +4,7 @@
     "type": "library",
     "require": {
         "php": ">=8.0",
-        "bcosca/fatfree-core": "^3.7",
+        "bcosca/fatfree-core": "^3.8",
         "monolog/monolog": "^2.3"
     },
     "require-dev": {
